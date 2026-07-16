@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.cache/
+.ipynb_checkpoints/
+
+# Local experiment artifacts. Keep the requested smoke-test image.
+outputs/*
+!outputs/smoke_test.png
+!outputs/dataset_sample.png
+wandb/
+checkpoints/
+data/
+datasets/
+*.hdf5
+*.safetensors
+*.pt
+*.pth
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+*~
+
+# External source and local simulator config
+/lerobot/
+/.libero/

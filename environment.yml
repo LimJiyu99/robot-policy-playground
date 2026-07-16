@@ -1,0 +1,17 @@
+# Create with an explicit prefix (do not use `-n`):
+# CONDA_PKGS_DIRS=/workspace/jy/conda/pkgs \
+#   /workspace/jy/miniforge3/bin/conda env create \
+#   -p /workspace/jy/conda/envs/lerobot_libero -f environment.yml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - ffmpeg=7.1.1
+  - pip
+  - pip:
+      # LeRobot's Linux source configuration targets the official cu128 index.
+      - --extra-index-url https://download.pytorch.org/whl/cu128
+      - torch==2.11.0+cu128
+      - torchvision==0.26.0+cu128
+      - -e ./lerobot[libero]
+prefix: /workspace/jy/conda/envs/lerobot_libero
