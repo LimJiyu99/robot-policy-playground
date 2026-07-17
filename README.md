@@ -13,6 +13,19 @@ ACT, Diffusion Policy, SmolVLA를 동일한 LIBERO 조건에서 비교하기 위
 
 상세 측정과 재실행 방법은 [ACT_TASK9_10K_REPORT.md](ACT_TASK9_10K_REPORT.md)를 참고한다.
 
+## ACT 10K action-steps ablation
+
+`chunk_size=100` 고정, task 9·20 episodes·seeds 42000--42019 조건의 결과이다.
+
+| `n_action_steps` | 성공률 | Runtime | Peak GPU memory | Mean / P95 latency |
+|---:|---:|---:|---:|---:|
+| 100 | 0/20 (0.0%) | 38.41 s | 3,442 MiB | 4.091 / 0.731 ms |
+| 20 | 10/20 (50.0%) | 51.34 s | 3,540 MiB | 4.496 / 1.579 ms |
+| 10 | 3/20 (15.0%) | 43.71 s | 3,540 MiB | 4.911 / 6.566 ms |
+| 5 | 2/20 (10.0%) | 42.37 s | 3,540 MiB | 5.380 / 7.486 ms |
+
+상세 결과와 영상 경로는 [ACT_ACTION_STEPS_ABLATION.md](ACT_ACTION_STEPS_ABLATION.md)를 참고한다.
+
 ## 빠른 시작
 
 ```bash
