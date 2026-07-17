@@ -26,6 +26,20 @@ ACT, Diffusion Policy, SmolVLA를 동일한 LIBERO 조건에서 비교하기 위
 
 상세 결과와 영상 경로는 [ACT_ACTION_STEPS_ABLATION.md](ACT_ACTION_STEPS_ABLATION.md)를 참고한다.
 
+## ACT 10K refined action-steps evaluation
+
+`chunk_size=100` 고정, task 9 기준: 20-episode는 seeds 42000--42019, top-two 재평가는 100 episodes/seeds 42000--42099이다.
+
+| `n_action_steps` | 20-episode success | 100-episode success | Runtime (20 / 100) | Peak GPU memory |
+|---:|---:|---:|---:|---:|
+| 15 | 11/20 (55.0%) | 44/100 (44.0%) | 51.84 s / 3:06.26 | 3,539 / 3,540 MiB |
+| 20 | 10/20 (50.0%) | 62/100 (62.0%) | 51.34 s / 3:24.23 | 3,540 / 3,540 MiB |
+| 25 | 7/20 (35.0%) | — | 49.47 s / — | 3,536 MiB |
+| 30 | 2/20 (10.0%) | — | 43.50 s / — | 3,535 MiB |
+| 40 | 0/20 (0.0%) | — | 41.18 s / — | 3,539 MiB |
+
+100-episode 확인에서 `n_action_steps=20`이 최고(62.0%)였다. 5K/10K 및 latency·영상 경로를 포함한 상세 결과는 [ACT_REFINED_ACTION_STEPS_EVALUATION.md](ACT_REFINED_ACTION_STEPS_EVALUATION.md)를 참고한다.
+
 ## 빠른 시작
 
 ```bash
