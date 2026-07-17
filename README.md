@@ -2,6 +2,17 @@
 
 ACT, Diffusion Policy, SmolVLA를 동일한 LIBERO 조건에서 비교하기 위한 개발 환경이다. 현재 단계에는 환경과 시뮬레이터 smoke test만 포함하며 학습 데이터, pretrained 모델, 학습 결과는 포함하지 않는다.
 
+## ACT task 9: 5K/10K 평가 비교
+
+동일 조건(LIBERO `libero_object` task 9, 20 episodes, seeds 42000--42019, batch size 5)에서의 결과이다.
+
+| Checkpoint | 성공률 | Runtime | Peak GPU memory | Mean / P95 latency |
+|---|---:|---:|---:|---:|
+| 5K (`005000`) | 0/20 (0.0%) | 41.78 s | 3,450 MiB | 4.291 / 0.766 ms |
+| 10K (`010000`) | 0/20 (0.0%) | 38.41 s | 3,442 MiB | 4.091 / 0.731 ms |
+
+상세 측정과 재실행 방법은 [ACT_TASK9_10K_REPORT.md](ACT_TASK9_10K_REPORT.md)를 참고한다.
+
 ## 빠른 시작
 
 ```bash
