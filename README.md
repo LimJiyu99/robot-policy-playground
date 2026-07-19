@@ -2,43 +2,27 @@
 
 ACT, Diffusion Policy, SmolVLA를 동일한 LIBERO 조건에서 비교하기 위한 개발 환경이다. 현재 단계에는 환경과 시뮬레이터 smoke test만 포함하며 학습 데이터, pretrained 모델, 학습 결과는 포함하지 않는다.
 
-## ACT task 9: 5K/10K 평가 비교
+## ACT LIBERO Object task 9 최신 결과
 
-동일 조건(LIBERO `libero_object` task 9, 20 episodes, seeds 42000--42019, batch size 5)에서의 결과이다.
+동일한 LIBERO Object task 9 평가 조건(100 episodes, seeds 42000--42099, 두 카메라, batch size 5)의 최신 비교다.
 
-| Checkpoint | 성공률 | Runtime | Peak GPU memory | Mean / P95 latency |
-|---|---:|---:|---:|---:|
-| 5K (`005000`) | 0/20 (0.0%) | 41.78 s | 3,450 MiB | 4.291 / 0.766 ms |
-| 10K (`010000`) | 0/20 (0.0%) | 38.41 s | 3,442 MiB | 4.091 / 0.731 ms |
+| Checkpoint | `chunk_size` | `n_action_steps` | 성공률 |
+|---|---:|---:|---:|
+| ACT 10K | 100 | 20 | 62/100 (62%) |
+| ACT 10K | 40 | 20 | 84/100 (84%) |
+| ACT 10K | 40 | 15 | **94/100 (94%)** |
 
-상세 측정과 재실행 방법은 [ACT_TASK9_10K_REPORT.md](ACT_TASK9_10K_REPORT.md)를 참고한다.
+chunk size를 100에서 40으로 줄여 성공률이 62%에서 84%로 상승했고, action steps를 20에서 15로 줄여 94%까지 상승했다. 최종 ACT 설정은 **10K checkpoint, `chunk_size=40`, `n_action_steps=15`**다.
 
-## ACT 10K action-steps ablation
+| Chunk 40 action-step ablation (20 episodes) | 성공률 |
+|---|---:|
+| 10 | 19/20 (95%) |
+| 15 | 19/20 (95%) |
+| 25 | 10/20 (50%) |
 
-`chunk_size=100` 고정, task 9·20 episodes·seeds 42000--42019 조건의 결과이다.
+20-step 동률은 20에 가까운 15를 선택했다. Temporal ensemble(10K, 1 step)은 0/20이었고 action scaling 0.8은 60/100으로 baseline 62/100을 넘지 못해 유의미한 개선이 없었다.
 
-| `n_action_steps` | 성공률 | Runtime | Peak GPU memory | Mean / P95 latency |
-|---:|---:|---:|---:|---:|
-| 100 | 0/20 (0.0%) | 38.41 s | 3,442 MiB | 4.091 / 0.731 ms |
-| 20 | 10/20 (50.0%) | 51.34 s | 3,540 MiB | 4.496 / 1.579 ms |
-| 10 | 3/20 (15.0%) | 43.71 s | 3,540 MiB | 4.911 / 6.566 ms |
-| 5 | 2/20 (10.0%) | 42.37 s | 3,540 MiB | 5.380 / 7.486 ms |
-
-상세 결과와 영상 경로는 [ACT_ACTION_STEPS_ABLATION.md](ACT_ACTION_STEPS_ABLATION.md)를 참고한다.
-
-## ACT 10K refined action-steps evaluation
-
-`chunk_size=100` 고정, task 9 기준: 20-episode는 seeds 42000--42019, top-two 재평가는 100 episodes/seeds 42000--42099이다.
-
-| `n_action_steps` | 20-episode success | 100-episode success | Runtime (20 / 100) | Peak GPU memory |
-|---:|---:|---:|---:|---:|
-| 15 | 11/20 (55.0%) | 44/100 (44.0%) | 51.84 s / 3:06.26 | 3,539 / 3,540 MiB |
-| 20 | 10/20 (50.0%) | 62/100 (62.0%) | 51.34 s / 3:24.23 | 3,540 / 3,540 MiB |
-| 25 | 7/20 (35.0%) | — | 49.47 s / — | 3,536 MiB |
-| 30 | 2/20 (10.0%) | — | 43.50 s / — | 3,535 MiB |
-| 40 | 0/20 (0.0%) | — | 41.18 s / — | 3,539 MiB |
-
-100-episode 확인에서 `n_action_steps=20`이 최고(62.0%)였다. 5K/10K 및 latency·영상 경로를 포함한 상세 결과는 [ACT_REFINED_ACTION_STEPS_EVALUATION.md](ACT_REFINED_ACTION_STEPS_EVALUATION.md)를 참고한다.
+최종 설정 영상/JSON: `outputs/act_task9_chunk40_10k_action_steps_15_eval_ablation100/eval/videos/libero_object_9/`, `outputs/act_task9_chunk40_10k_action_steps_15_eval_ablation100/instrumentation.json`.
 
 ## 빠른 시작
 
