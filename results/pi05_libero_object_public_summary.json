@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "project": "lerobot-libero-benchmark",
+  "environment": {
+    "suite": "LIBERO Object",
+    "tasks": 10,
+    "dataset_repo_id": "lerobot/libero_object_image",
+    "dataset_episodes": 454,
+    "hardware": "single RTX 4090 24GB"
+  },
+  "completed_results": [
+    {
+      "id": "pi05_base_expert_only_80k",
+      "initial_checkpoint": "lerobot/pi05_base",
+      "training": "expert-only, batch_size=2, 80K optimizer steps",
+      "evaluation": "10 tasks x 3 episodes",
+      "successes": 5,
+      "episodes": 30,
+      "success_rate": 0.16666666666666666,
+      "task_successes": [0, 0, 0, 1, 1, 0, 1, 1, 1, 0],
+      "source": "outputs/pi05_libero_base_vs_expert_only_80k_eval30/instrumentation.json"
+    },
+    {
+      "id": "pi05_libero_base_raw",
+      "initial_checkpoint": "lerobot/pi05_libero_base",
+      "training": "no additional adaptation",
+      "evaluation": "same 10 tasks x 3 episodes",
+      "successes": 0,
+      "episodes": 30,
+      "success_rate": 0.0,
+      "source": "outputs/pi05_libero_base_vs_expert_only_80k_eval30/instrumentation.json"
+    },
+    {
+      "id": "pi05_libero_finetuned_v044_positive_control",
+      "initial_checkpoint": "lerobot/pi05_libero_finetuned_v044",
+      "training": "no additional adaptation",
+      "evaluation": "task 0 x 3 episodes",
+      "successes": 3,
+      "episodes": 3,
+      "success_rate": 1.0,
+      "scope": "positive control only; not a 10-task evaluation",
+      "source": "outputs/pi05_finetuned_v044_positive_control/eval_info.json"
+    },
+    {
+      "id": "pi05_libero_base_expert_only_6k",
+      "initial_checkpoint": "lerobot/pi05_libero_base",
+      "training": "expert-only, batch_size=2, 6K optimizer steps",
+      "evaluation": "10 tasks x 3 episodes",
+      "successes": 30,
+      "episodes": 30,
+      "success_rate": 1.0,
+      "scope": "preliminary; task-specific sample count is three",
+      "source": "outputs/pi05_libero_base_expert_only_6k/eval/instrumentation.json"
+    }
+  ],
+  "incomplete_evaluations": [
+    {
+      "id": "pi05_libero_base_vs_expert_only_6k_eval100",
+      "description": "same-seed paired evaluation, 100 episodes per policy / 200 rollouts planned",
+      "status": "Paused / Incomplete",
+      "source": "outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json",
+      "note": "Partial rollout statistics are intentionally omitted from this public summary."
+    }
+  ]
+}

@@ -90,6 +90,59 @@ SmolVLA는 inference 시 `torch.normal` 기반의 확률적 노이즈를 사용�
 
 **핵심 결론:** batch4 20K는 최고 평균 성공률 모델이다. 동시에 Task 5에서는 재현 가능한 파지 안정화 성능 저하가 관찰됐다. 이는 평균 성능 향상과 개별 태스크 성능 저하가 동시에 발생할 수 있음을 보여주는 멀티태스크 학습 사례다.
 
+## π0.5 LIBERO Object fine-tuning 검증
+
+이 섹션은 π0.5의 초기 checkpoint와 expert-only adaptation이 LIBERO Object에 미치는 영향을 확인한 기록이다. 실험은 single RTX 4090 24GB에서 수행했으며, `lerobot/libero_object_image`의 10개 task·454 episodes를 사용했다. 평가는 LIBERO relative control, 두 256×256 카메라, `n_action_steps=10`, task별 독립 process 조건으로 수행했다.
+
+### Checkpoint 관계와 핵심 결과
+
+`pi05_base`와 `pi05_libero_base`는 서로 다른 초기화이므로, 아래 결과는 scratch 학습의 공정 비교가 아니다. 특히 `pi05_libero_base`는 이미 LIBERO 학습 이력이 있는 checkpoint이며, 여기서 말하는 raw는 **추가 adaptation을 하지 않은 상태**다.
+
+| 초기 checkpoint / 실험 | 학습 | 평가 범위 | 결과 | 해석 범위 |
+|---|---:|---:|---:|---|
+| `lerobot/pi05_base` → expert-only | 80K | 10 tasks × 3 = 30 | 5/30 (16.7%) | 동일 30-seed 기록 |
+| raw `lerobot/pi05_libero_base` | 추가 학습 없음 | 10 tasks × 3 = 30 | 0/30 (0.0%) | checkpoint/input contract을 맞춘 raw 기준선 |
+| `lerobot/pi05_libero_finetuned_v044` positive control | 추가 학습 없음 | task 0 × 3 | 3/3 (100.0%) | task 0에 한정된 pipeline 검증 |
+| `lerobot/pi05_libero_base` → expert-only | 6K | 10 tasks × 3 = 30 | 30/30 (100.0%) | **preliminary**; task당 3회뿐 |
+
+`pi05_base` 80K의 task별 성공은 `0, 0, 0, 1, 1, 0, 1, 1, 1, 0`(/3)이었다. 6K adaptation의 30/30은 최종 100% 성능이나 일반화/OOD 성능의 증거로 해석하지 않는다.
+
+### 검증과 실패 실험의 구분
+
+**Observed**
+
+- `pi05_base` expert-only 80K는 위 30 episodes에서 5회 성공했고, raw `pi05_libero_base`는 0회 성공했다.
+- `pi05_libero_base`에서 시작한 expert-only 6K adaptation은 별도 30 episodes에서 모든 task 3/3을 기록했다.
+
+**Verified**
+
+- 공식 `pi05_libero_finetuned_v044` positive control은 task 0에서 3/3 성공했다.
+- custom evaluator는 공식 LeRobot evaluator의 rollout·first-done 이전 success 집계를 그대로 사용한다. 따라서 성공 판정 자체는 동일하다.
+- 6K run은 `wrist_image → image2` rename을 명시해 source checkpoint의 `image/image2` camera contract에 맞췄다.
+
+**Hypotheses**
+
+- `pi05_base` 경로의 낮은 성능은 small batch, expert-only 범위, normalization 선택, 또는 converted checkpoint adaptation의 차이와 관련될 수 있다.
+- `pi05_libero_base`와의 input/processor 계약 정합성이 빠른 adaptation에 기여했을 가능성이 있다.
+
+**Not verified**
+
+- 위 가설의 개별 인과관계, 6K 결과의 100-seed 재현성, OOD/generalization 성능은 아직 검증하지 않았다.
+- 6K와 80K는 초기 checkpoint가 달라 학습 step만으로 성능 차이를 설명할 수 없다.
+
+### 미완료 평가
+
+raw `pi05_libero_base`와 6K adaptation을 task별 같은 10 seed로 비교하는 100-seed paired evaluation(모델당 100, 총 200 rollouts)은 시간 제약으로 중단됐다. 이 평가는 resume 가능하며, 부분 결과는 최종 결과표나 성능 주장에 사용하지 않았다. 실제 재개 스크립트는 `scripts/eval_pi05_libero_base_vs_expert6k_eval100_resume.py`다.
+
+### Limitations 및 재현
+
+- 6K와 80K는 initialization이 다르고, 30-episode 결과는 task별 sample 수가 세 개다.
+- 전체 task 100-seed/OOD/generalization 평가는 완료되지 않았다.
+- 6K workflow 재현: `source scripts/activate_lerobot.sh && python scripts/run_pi05_libero_base_6k_then_eval.py`
+- 100-seed paired evaluation 재개: `source scripts/activate_lerobot.sh && python scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py`
+
+재현 절차와 JSON provenance는 [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md), 상세 실험 로그는 [docs/EXPERIMENT_LOG.md](docs/EXPERIMENT_LOG.md), 공개용 결과표는 [docs/RESULTS.md](docs/RESULTS.md)에 정리했다.
+
 ## 빠른 시작
 
 ```bash

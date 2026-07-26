@@ -17,6 +17,11 @@ datasets/
 *.safetensors
 *.pt
 *.pth
+optimizer_state.safetensors
+*.mp4
+*.log
+*.incomplete
+/cache/
 
 # Editor and OS files
 .vscode/
