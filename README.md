@@ -178,6 +178,8 @@ python scripts/eval_pi05_libero_base_expert_only_6k_demo_videos.py
 
 ACT·Diffusion Policy·SmolVLA checkpoint의 평가는 [scripts/eval_policy_instrumented.py](scripts/eval_policy_instrumented.py)를 통해 LeRobot의 표준 evaluator에 instrumentation JSON 기록을 추가하는 방식으로 수행했다. 실행 스크립트의 역할은 [scripts/README.md](scripts/README.md)에 정리했다.
 
+ACT final 10K, Diffusion Policy 10K, SmolVLA batch4 20K의 **학습과 평가 명령 전체**는 [재현 가이드](docs/REPRODUCIBILITY.md)에 정책별로 분리해 두었다.
+
 ## 범위와 한계
 
 - LIBERO Object는 10개 단일 객체 조작 task, 454 episodes를 사용한다.
