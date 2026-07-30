@@ -1,29 +1,25 @@
 #!/usr/bin/env bash
-# Evaluate configurable ACT checkpoints/action queues on deterministic LIBERO task-9 rollouts.
+# Evaluate ACT 10k task 9 with shorter executed action chunks.
 
 set -uo pipefail
 
 ACT_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ACT_CHECKPOINT_STEP="${ACT_CHECKPOINT_STEP:-010000}"
-ACT_CHECKPOINT_LABEL="${ACT_CHECKPOINT_LABEL:-10k}"
-ACT_ACTION_STEPS_LIST="${ACT_ACTION_STEPS_LIST:?Set ACT_ACTION_STEPS_LIST, e.g. '15 25 30 40'}"
+ACT_CHECKPOINT="${ACT_PROJECT_ROOT}/outputs/act_task9_5k/checkpoints/010000/pretrained_model"
 ACT_EVAL_SEED=42000
-ACT_EVAL_EPISODES="${ACT_EVAL_EPISODES:-20}"
+ACT_EVAL_EPISODES=20
 ACT_EVAL_BATCH_SIZE=5
-ACT_OUTPUT_TAG="${ACT_OUTPUT_TAG:?Set ACT_OUTPUT_TAG, e.g. refined20}"
-ACT_CHECKPOINT="${ACT_CHECKPOINT_PATH:-${ACT_PROJECT_ROOT}/outputs/act_task9_5k/checkpoints/${ACT_CHECKPOINT_STEP}/pretrained_model}"
-ACT_POLICY_OVERRIDES="${ACT_POLICY_OVERRIDES:-}"
+ACT_OUTPUT_TAG="${ACT_OUTPUT_TAG:-run2}"
 
 if [[ ! -f "${ACT_CHECKPOINT}/config.json" || ! -f "${ACT_CHECKPOINT}/model.safetensors" ]]; then
-    echo "ACT checkpoint is incomplete or missing: ${ACT_CHECKPOINT}" >&2
+    echo "ACT 10k checkpoint is incomplete or missing: ${ACT_CHECKPOINT}" >&2
     exit 2
 fi
 
 source "${ACT_PROJECT_ROOT}/scripts/activate_lerobot.sh"
 export HF_HUB_OFFLINE=1
 
-for ACT_ACTION_STEPS in ${ACT_ACTION_STEPS_LIST}; do
-    ACT_OUTPUT_DIR="${ACT_PROJECT_ROOT}/outputs/act_task9_${ACT_CHECKPOINT_LABEL}_action_steps_${ACT_ACTION_STEPS}_eval_${ACT_OUTPUT_TAG}"
+for ACT_ACTION_STEPS in 20 10 5; do
+    ACT_OUTPUT_DIR="${ACT_PROJECT_ROOT}/outputs/act_task9_10k_action_steps_${ACT_ACTION_STEPS}_eval_${ACT_OUTPUT_TAG}"
     if [[ -e "${ACT_OUTPUT_DIR}" ]]; then
         echo "Refusing to overwrite existing output: ${ACT_OUTPUT_DIR}" >&2
         exit 2
@@ -41,7 +37,6 @@ for ACT_ACTION_STEPS in ${ACT_ACTION_STEPS_LIST}; do
         python "${ACT_PROJECT_ROOT}/scripts/eval_policy_instrumented.py" \
         --policy.path="${ACT_CHECKPOINT}" \
         --policy.n_action_steps="${ACT_ACTION_STEPS}" \
-        ${ACT_POLICY_OVERRIDES} \
         --env.type=libero \
         --env.task=libero_object \
         --env.task_ids='[9]' \

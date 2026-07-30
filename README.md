@@ -1,55 +1,186 @@
 # LeRobot LIBERO Benchmark
 
-LIBERO Object에서 ACT, Diffusion Policy, SmolVLA, π0.5를 비교한 재현 가능한 로봇 imitation-learning 실험 모음이다. 모든 결과는 단일 RTX 4090 24GB에서 수행했다.
+LIBERO Object에서 ACT, Diffusion Policy, SmolVLA, π0.5를 비교한 로봇 imitation-learning 실험 모음이다. 모든 결과는 단일 RTX 4090 24GB에서 수행했으며, 표의 수치는 각 평가 `instrumentation.json`에서 확인했다.
 
-## 핵심 결과
+## ACT LIBERO Object task 9 최신 결과
 
-| Policy | 설정 | 평가 | 성공률 |
-| --- | --- | ---: | ---: |
-| ACT | chunk 40, action steps 15, 10K | task 9, 동일 100 seeds | 94/100 (94%) |
-| Diffusion Policy | horizon 40, action steps 10, 10K | task 9, 동일 100 seeds | 92/100 (92%) |
-| SmolVLA | batch 4, 20K, action steps 10 | LIBERO Object 10 tasks | 87/100 (87%) |
-| π0.5 | `pi05_libero_base` → expert-only 6K | LIBERO Object 10 tasks, 동일 100 seeds | 100/100 (100%) |
+동일한 LIBERO Object task 9 평가 조건(100 episodes, seeds 42000--42099, 두 카메라, batch size 5)의 최신 비교다.
 
-π0.5의 100/100은 raw `pi05_libero_base`와 동일한 100개 seed에서 얻은 결과이며, OOD 또는 일반화 성능을 뜻하지 않는다. 실패한 π0.5 경로(MIN_MAX, MEAN_STD, LoRA, expert-only 80K)는 [실패 분석](docs/pi05_experiment_failures.md)에 별도로 기록했다.
+| Checkpoint | `chunk_size` | `n_action_steps` | 성공률 |
+|---|---:|---:|---:|
+| ACT 10K | 100 | 20 | 62/100 (62%) |
+| ACT 10K | 40 | 20 | 84/100 (84%) |
+| ACT 10K | 40 | 15 | **94/100 (94%)** |
+
+chunk size를 100에서 40으로 줄여 성공률이 62%에서 84%로 상승했고, action steps를 20에서 15로 줄여 94%까지 상승했다. 최종 ACT 설정은 **10K checkpoint, `chunk_size=40`, `n_action_steps=15`**다.
+
+| Chunk 40 action-step ablation (20 episodes) | 성공률 |
+|---|---:|
+| 10 | 19/20 (95%) |
+| 15 | 19/20 (95%) |
+| 25 | 10/20 (50%) |
+
+20-step 동률은 20에 가까운 15를 선택했다. Temporal ensemble(10K, 1 step)은 0/20이었고 action scaling 0.8은 60/100으로 baseline 62/100을 넘지 못해 유의미한 개선이 없었다.
+
+최종 설정 영상/JSON: `outputs/act_task9_chunk40_10k_action_steps_15_eval_ablation100/eval/videos/libero_object_9/`, `outputs/act_task9_chunk40_10k_action_steps_15_eval_ablation100/instrumentation.json`.
+초기 smoke rollout의 pipeline 검증은 [ACT_SMOKE_EVAL_REPORT.md](ACT_SMOKE_EVAL_REPORT.md), 10K action/gripper 예측 분석은 [GRIPPER_ANALYSIS.md](GRIPPER_ANALYSIS.md)에 보존했다.
+
+## Diffusion Policy 및 동일-seed 최종 비교
+
+Diffusion Policy 10K (`horizon=40`)의 20-episode action-step ablation 결과다.
+
+| `n_action_steps` | 성공률 |
+|---:|---:|
+| 10 | 19/20 (95%) |
+| 15 | 17/20 (85%) |
+| 20 | 15/20 (75%) |
+| 25 | 15/20 (75%) |
+
+`n_action_steps=10`은 새 seed 42020--42119에서 92/100 (92%)을 기록했다. 같은 100개 초기조건의 최종 비교는 다음과 같다.
+
+| Policy | 설정 | 성공률 | 상대 episode 결과 |
+|---|---|---:|---:|
+| ACT 10K | `chunk_size=40`, `n_action_steps=15` | **94/100 (94%)** | ACT 성공 / Diffusion 실패: 7 |
+| Diffusion Policy 10K | `horizon=40`, `n_action_steps=10` | 92/100 (92%) | ACT 실패 / Diffusion 성공: 5 |
+
+ACT는 chunk size와 replanning interval 조정으로 62%에서 94%까지 향상됐다. Diffusion Policy는 더 짧은 실행 구간에서 92%를 달성했다. 동일 초기조건에서 ACT가 2회 더 성공했지만 두 정책 모두 90% 이상의 유사한 성능을 보였고, 단일 객체 조작에서 Diffusion Policy가 ACT보다 반드시 우수하지는 않았다. 이후 실험은 multi-task 및 language-conditioned VLA로 확장할 예정이다.
+
+## SmolVLA 멀티태스크 VLA
+
+SmolVLA는 LIBERO Object의 10개 task와 language instruction을 함께 입력으로 사용하는 multi-task policy다. `train_config.json`과 checkpoint config에서 확인한 기본 설정은 `lerobot/smolvla_base` 초기화, `policy.type=smolvla`, `chunk_size=40`, 학습 시 `n_action_steps=15`, `freeze_vision_encoder=true`, VLM `HuggingFaceTB/SmolVLM2-500M-Video-Instruct`다. 데이터셋은 `lerobot/libero_object_image`(454 episodes)이며, 평가는 checkpoint의 action chunk 설정을 유지한 채 `n_action_steps=10`으로 수행했다.
+
+### 체크포인트 비교 (task당 3 episodes, 총 30 episodes)
+
+아래 batch-1 checkpoint ablation은 task별 seed `42000 + 100 × task + {0,1,2}`를 사용한 기록된 30-episode 결과다. 100-episode final 결과와는 별도 프로토콜이므로 합산하거나 paired 결과로 해석하지 않는다.
+
+| 학습 단계 | 5K | 10K | 15K | 20K | 30K | 40K | 50K | 60K | 70K |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Batch size 1 | 0/30 (0.0%) | 13/30 (43.3%) | 16/30 (53.3%) | 18/30 (60.0%) | 20/30 (66.7%) | 19/30 (63.3%) | 13/30 (43.3%) | 11/30 (36.7%) | 11/30 (36.7%) |
+
+batch size 4의 동일 30-episode ablation은 다음과 같다. 각 행의 `T0`–`T9`는 task별 성공 횟수(/3)다.
+
+| 학습 단계 | T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | 전체 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Batch 4, 5K | 1 | 2 | 1 | 1 | 3 | 0 | 3 | 2 | 1 | 0 | 14/30 (46.7%) |
+| Batch 4, 10K | 3 | 1 | 1 | 2 | 1 | 3 | 2 | 1 | 3 | 0 | 17/30 (56.7%) |
+| Batch 4, 15K | 1 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 3 | 1 | 20/30 (66.7%) |
+| Batch 4, 20K | 2 | 2 | 1 | 3 | 3 | 2 | 3 | 2 | 3 | 3 | **24/30 (80.0%)** |
+| Batch 4, 25K | 2 | 2 | 2 | 2 | 3 | 2 | 3 | 1 | 3 | 1 | 21/30 (70.0%) |
+
+같은 30개 seed로 기록된 batch-1 checkpoint와 비교하면 batch4 5K/10K는 각각 14 vs 18, 17 vs 19로 낮았고, batch4 15K는 batch1 60K의 기록된 11보다 20으로 높았다. 이 비교의 batch4-only / batch1-only 성공은 각각 5/9, 7/9, 11/2 episodes다. 60K의 과거 요약 수치가 아니라 원본 instrumentation의 seed-level 결과를 사용했다.
+
+### 최종 100-episode 평가 (task당 10 episodes)
+
+최종 비교는 task별 10개 seed, 총 100 episodes에서 별도로 수행했다. `T0`–`T9`는 task별 성공 횟수(/10)이며, 아래 행끼리만 같은 100개 초기조건을 공유한다.
+
+| 정책 / 체크포인트 | T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | 전체 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Batch 1, 70K | 7 | 4 | 9 | 6 | 6 | 3 | 9 | 5 | 7 | 7 | 63/100 (63.0%) |
+| Batch 4, 15K | 8 | 7 | 8 | 8 | 8 | 9 | 8 | 8 | 10 | 9 | 83/100 (83.0%) |
+| Batch 4, 20K | 9 | 9 | 8 | 10 | 10 | 4 | 9 | 9 | 10 | 9 | **87/100 (87.0%)** |
+
+Batch4 15K와 20K의 동일 100 seed 비교에서는 20K만 성공 14, 15K만 성공 10, 둘 다 성공 73, 둘 다 실패 3 episodes였다. 따라서 최종 최고 평균 성공률 checkpoint는 **batch4 20K**다.
+
+### Task 5 통제 비교
+
+Task 5(`pick up the tomato sauce and place it in the basket`)는 전체 최종 표와 분리한 통제 비교다. 동일한 50개 환경 seed, 동일한 batch 1·단일 환경 평가 방식, `n_action_steps=10`을 두 checkpoint에 적용했다. 전체 평균 성능은 batch4 20K가 87/100으로 가장 높았지만, Task 5에서는 15K보다 낮았다. 15K는 34/50 (68.0%), 20K는 25/50 (50.0%)였고, 15K만 성공 9, 20K만 성공 0, 둘 다 성공 25, 둘 다 실패 16 episodes였다. 즉 20K가 성공한 25개 seed는 모두 15K도 성공했으며, 20K만 성공한 seed는 없었다.
+
+저장된 실행 영상에서는 정책이 대체로 대상 물체까지 접근하고 파지를 시도했다. 주요 실패는 물체를 찾지 못하거나 명령을 이해하지 못한 문제보다는, 그리퍼를 닫거나 들어 올리기를 시작할 때 대상 캔이 미끄러져 파지를 유지하지 못하는 형태로 관찰됐다. 네모난 물체보다 평평한 접촉면이 적은 원통형 물체에서는 파지 안정화가 더 민감할 수 있으며, 이 관찰은 20K checkpoint에서 원통형 물체에 필요한 파지 전략이 약화됐거나 멀티태스크 간 간섭이 발생했을 가능성과 일치한다. 다만 현재 실험만으로 원통형 형상이 직접적인 원인이라고 확정할 수는 없다.
+
+SmolVLA는 inference 시 `torch.normal` 기반의 확률적 노이즈를 사용하며 checkpoint의 `inference_seed`는 `null`이다. 환경 seed가 같아도 batch 크기, 벡터화 환경 실행 방식, process별 RNG 호출 순서가 다르면 실행 결과가 달라질 수 있으므로, batch-3 전체 평가의 Task 5 수치와 batch-1 통제 비교 수치를 직접 쌍대 비교로 해석하지 않았다. 반면 동일한 통제 비교 프로토콜 내부의 15K 대 20K 비교만 근거로 사용했다.
+
+**핵심 결론:** batch4 20K는 최고 평균 성공률 모델이다. 동시에 Task 5에서는 재현 가능한 파지 안정화 성능 저하가 관찰됐다. 이는 평균 성능 향상과 개별 태스크 성능 저하가 동시에 발생할 수 있음을 보여주는 멀티태스크 학습 사례다.
+
+## π0.5 LIBERO Object fine-tuning 검증
+
+이 섹션은 π0.5의 초기 checkpoint와 expert-only adaptation이 LIBERO Object에 미치는 영향을 확인한 기록이다. 실험은 single RTX 4090 24GB에서 수행했으며, `lerobot/libero_object_image`의 10개 task·454 episodes를 사용했다. 평가는 LIBERO relative control, 두 256×256 카메라, `n_action_steps=10`, task별 독립 process 조건으로 수행했다.
+
+### Checkpoint 관계와 핵심 결과
+
+`pi05_base`와 `pi05_libero_base`는 서로 다른 초기화이므로, 아래 결과는 scratch 학습의 공정 비교가 아니다. 특히 `pi05_libero_base`는 이미 LIBERO 학습 이력이 있는 checkpoint이며, 여기서 말하는 raw는 **추가 adaptation을 하지 않은 상태**다.
+
+| 초기 checkpoint / 실험 | 학습 | 평가 범위 | 결과 | 해석 범위 |
+|---|---:|---:|---:|---|
+| `lerobot/pi05_base` → expert-only | 80K | 10 tasks × 3 = 30 | 5/30 (16.7%) | 동일 30-seed 기록 |
+| raw `lerobot/pi05_libero_base` | 추가 학습 없음 | 10 tasks × 3 = 30 | 0/30 (0.0%) | checkpoint/input contract을 맞춘 raw 기준선 |
+| `lerobot/pi05_libero_finetuned_v044` positive control | 추가 학습 없음 | task 0 × 3 | 3/3 (100.0%) | task 0에 한정된 pipeline 검증 |
+| `lerobot/pi05_libero_base` → expert-only | 6K | 10 tasks × 3 = 30 | 30/30 (100.0%) | **preliminary**; task당 3회뿐 |
+| raw `pi05_libero_base` vs 6K adaptation | 10 tasks × 10 = 100 / policy | raw 0/100, 6K 100/100 | 동일 seed 100개 paired 완료 |
+
+`pi05_base` 80K의 task별 성공은 `0, 0, 0, 1, 1, 0, 1, 1, 1, 0`(/3)이었다. 6K adaptation의 30/30은 최종 100% 성능이나 일반화/OOD 성능의 증거로 해석하지 않는다.
+
+### 검증과 실패 실험의 구분
+
+**Observed**
+
+- `pi05_base` expert-only 80K는 위 30 episodes에서 5회 성공했고, raw `pi05_libero_base`는 0회 성공했다.
+- `pi05_libero_base`에서 시작한 expert-only 6K adaptation은 별도 30 episodes에서 모든 task 3/3을 기록했다.
+- 같은 task별 10 seed(42020–42119) 100-episode 비교에서도 raw base는 0/100, 6K adaptation은 100/100이었다. paired 결과는 6K만 성공 100, raw base만 성공 0이었다.
+
+**Verified**
+
+- 공식 `pi05_libero_finetuned_v044` positive control은 task 0에서 3/3 성공했다.
+- custom evaluator는 공식 LeRobot evaluator의 rollout·first-done 이전 success 집계를 그대로 사용한다. 따라서 성공 판정 자체는 동일하다.
+- 6K run은 `wrist_image → image2` rename을 명시해 source checkpoint의 `image/image2` camera contract에 맞췄다.
+
+**Hypotheses**
+
+- `pi05_base` 경로의 낮은 성능은 small batch, expert-only 범위, normalization 선택, 또는 converted checkpoint adaptation의 차이와 관련될 수 있다.
+- `pi05_libero_base`와의 input/processor 계약 정합성이 빠른 adaptation에 기여했을 가능성이 있다.
+
+**Not verified**
+
+- 위 가설의 개별 인과관계와 OOD/generalization 성능은 아직 검증하지 않았다.
+- 6K의 동일 task·seed 100-episode 재현성은 확인했지만, 다른 seed 분포는 아직 검증하지 않았다.
+- 6K와 80K는 초기 checkpoint가 달라 학습 step만으로 성능 차이를 설명할 수 없다.
+
+### 100-seed paired evaluation
+
+raw `pi05_libero_base`와 6K adaptation을 task별 같은 10 seed로 비교한 100-seed paired evaluation(모델당 100, 총 200 rollouts)은 완료됐다. raw base는 0/100, 6K adaptation은 100/100이었으며, paired 결과는 6K만 성공 100, raw base만 성공 0이었다. 원본은 `outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json`이며 재실행 스크립트는 `scripts/eval_pi05_libero_base_vs_expert6k_eval100_resume.py`다.
+
+### Limitations 및 재현
+
+- 6K와 80K는 initialization이 다르고, 30-episode 결과는 task별 sample 수가 세 개다.
+- 동일 task·seed 100-episode 비교는 완료됐지만 OOD/generalization 평가는 수행하지 않았다.
+- 6K 학습 재현: `bash scripts/train_pi05_libero_base_expert_only_batch2_meanstd_6k.sh`
+- 100-seed paired evaluation: `source scripts/activate_lerobot.sh && python scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py`
+
+재현 절차는 [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md), π0.5 실패 경로는 [docs/pi05_experiment_failures.md](docs/pi05_experiment_failures.md), 핵심 결과표는 [docs/RESULTS.md](docs/RESULTS.md)에 정리했다.
 
 ## 대표 rollout
 
-| Policy | 성공 rollout |
-| --- | --- |
-| ACT | [task 9 MP4](assets/videos/act_task9_success.mp4) |
-| Diffusion Policy | [task 9 MP4](assets/videos/diffusion_task9_success.mp4) |
-| SmolVLA batch4 20K | [task 5 MP4](assets/videos/smolvla_task5_success.mp4) |
-| π0.5 6K | [task 0 MP4](assets/videos/pi05_task0_success.mp4) |
+각 모델의 성공 rollout을 공개용으로 짧게 보존했다. 원본 평가 영상과 checkpoint·dataset은 Git에 포함하지 않는다.
 
-## 빠른 시작
+| Policy | 평가 설정 | 성공 rollout |
+| --- | --- | --- |
+| ACT 10K | task 9, chunk 40, action steps 15 | [MP4](assets/videos/act_task9_success.mp4) |
+| Diffusion Policy 10K | task 9, horizon 40, action steps 10 | [MP4](assets/videos/diffusion_task9_success.mp4) |
+| SmolVLA batch4 20K | LIBERO Object task 5 | [MP4](assets/videos/smolvla_task5_success.mp4) |
+| π0.5 6K | LIBERO Object task 0 | [MP4](assets/videos/pi05_task0_success.mp4) |
+
+## 재현 환경
 
 ```bash
-git clone https://github.com/LimJiyu99/robot-policy-playground.git
-cd robot-policy-playground
 conda env create -f environment.yml
+export LEROBOT_DATASET_ROOT=/absolute/path/to/libero_object_image
+export LIBERO_ASSETS_PATH=/absolute/path/to/libero_assets
 source scripts/activate_lerobot.sh
-```
-
-LIBERO 데이터셋 위치를 지정한다.
-
-```bash
-export LEROBOT_DATASET_ROOT=/path/to/libero_object_image
-export LIBERO_ASSETS_PATH=/path/to/libero_assets
 python scripts/smoke_test_libero.py
 ```
 
-π0.5 6K 학습과 대표 영상 재생성 예시는 다음과 같다. checkpoint와 output은 Git에 포함되지 않는다.
+π0.5 adaptation과 같은 seed 100-episode 비교는 다음과 같다.
 
 ```bash
 bash scripts/train_pi05_libero_base_expert_only_batch2_meanstd_6k.sh
+python scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py
 python scripts/eval_pi05_libero_base_expert_only_6k_demo_videos.py
 ```
 
-정확한 설정·명령은 [재현 가이드](docs/REPRODUCIBILITY.md), 결과표는 [RESULTS](docs/RESULTS.md), 기계 판독용 요약은 [results JSON](results/pi05_libero_object_public_summary.json)에 있다.
+ACT·Diffusion Policy·SmolVLA checkpoint의 평가는 [scripts/eval_policy_instrumented.py](scripts/eval_policy_instrumented.py)를 통해 LeRobot의 표준 evaluator에 instrumentation JSON 기록을 추가하는 방식으로 수행했다. 실행 스크립트의 역할은 [scripts/README.md](scripts/README.md)에 정리했다.
 
 ## 범위와 한계
 
 - LIBERO Object는 10개 단일 객체 조작 task, 454 episodes를 사용한다.
-- checkpoint, dataset, raw output, 대량 로그는 Git에 포함하지 않는다.
+- checkpoint, dataset, raw output JSON, 대량 로그, 원본 영상은 Git에 포함하지 않는다.
+- ACT/Diffusion은 task 9 단일 task 결과이고 SmolVLA/π0.5는 10-task 결과이므로, 성공률을 동일한 난이도의 절대 순위로 해석하지 않는다.
 - 서로 다른 batch size·RNG·vectorized environment protocol에서 얻은 결과는 paired comparison으로 합치지 않는다.
