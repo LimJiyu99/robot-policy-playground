@@ -17,14 +17,20 @@ from lerobot.configs.policies import PreTrainedConfig
 from lerobot.policies.pi05.configuration_pi05 import PI05Config  # noqa: F401
 
 
-ROOT = Path("outputs/pi05_libero_base_vs_expert_only_6k_eval100")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(
+    os.environ.get(
+        "PI05_PAIRED_EVAL_OUTPUT",
+        PROJECT_ROOT / "outputs/pi05_libero_base_vs_expert_only_6k_eval100",
+    )
+)
 RESULT_PATH = ROOT / "instrumentation.json"
 SUMMARY_PATH = ROOT / "summary.json"
-DATASET_ROOT = Path("/workspace/jy/datasets/lerobot/libero_object_image")
+DATASET_ROOT = Path(os.environ["LEROBOT_DATASET_ROOT"])
 POLICIES = {
     "pi05_libero_base_untrained": "lerobot/pi05_libero_base",
     "pi05_libero_base_expert_only_6k": (
-        "outputs/pi05_libero_base_expert_only_6k/checkpoints/006000/pretrained_model"
+        str(PROJECT_ROOT / "outputs/pi05_libero_base_expert_only_6k/checkpoints/006000/pretrained_model")
     ),
 }
 EPISODES_PER_TASK = 10
@@ -170,7 +176,7 @@ def run_episode(label: str, policy_path: str, task: int, seed: int) -> dict[str,
     }
     command = [
         sys.executable,
-        "scripts/eval_act_smoke_instrumented.py",
+        str(PROJECT_ROOT / "scripts/eval_policy_instrumented.py"),
         f"--policy.path={policy_path}",
         "--policy.n_action_steps=10",
         "--env.type=libero",
@@ -187,7 +193,7 @@ def run_episode(label: str, policy_path: str, task: int, seed: int) -> dict[str,
         f"--seed={seed}",
         f"--output_dir={run_dir}",
     ]
-    subprocess.run(command, cwd=Path.cwd(), check=True, env=environment, stdin=subprocess.DEVNULL)
+    subprocess.run(command, cwd=PROJECT_ROOT, check=True, env=environment, stdin=subprocess.DEVNULL)
     raw = json.loads(metrics_path.read_text())
     episodes = raw.get("per_episode", [])
     if raw.get("status") != "completed" or len(episodes) != 1:

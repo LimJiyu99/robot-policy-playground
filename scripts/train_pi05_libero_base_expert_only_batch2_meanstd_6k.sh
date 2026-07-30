@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /workspace/jy/projects/lerobot-libero-benchmark
-source scripts/activate_lerobot.sh
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+source "$PROJECT_ROOT/scripts/activate_lerobot.sh"
+
+: "${LEROBOT_DATASET_ROOT:?Set LEROBOT_DATASET_ROOT to the local libero_object_image dataset.}"
 
 # This is a fresh, controlled initialization experiment. It never resumes the
 # pi05_base 80K run and writes into a separate adaptation root.
-OUT="outputs/pi05_libero_base_expert_only_batch2_meanstd_6k"
-RUNLOG="outputs/.runlogs/pi05_libero_base_expert_only_batch2_meanstd_6k"
+OUT="${PI05_OUTPUT_DIR:-$PROJECT_ROOT/outputs/pi05_libero_base_expert_only_batch2_meanstd_6k}"
+RUNLOG="${PI05_RUNLOG_DIR:-$PROJECT_ROOT/outputs/.runlogs/pi05_libero_base_expert_only_batch2_meanstd_6k}"
 
 if [[ -e "$OUT" ]]; then
     echo "오류: 출력 폴더가 이미 존재합니다: $OUT"
@@ -49,7 +52,7 @@ trap cleanup EXIT INT TERM
 PYTHONUNBUFFERED=1 /usr/bin/time -v -o "$RUNLOG/training_time.txt" \
 lerobot-train \
   --dataset.repo_id=lerobot/libero_object_image \
-  --dataset.root=/workspace/jy/datasets/lerobot/libero_object_image \
+  --dataset.root="$LEROBOT_DATASET_ROOT" \
   --dataset.return_uint8=true \
   --policy.type=pi05 \
   --policy.pretrained_path=lerobot/pi05_libero_base \

@@ -16,4 +16,4 @@
 - 80K와 6K는 각각 `pi05_base`, `pi05_libero_base`에서 시작했으므로 학습 step만으로 비교할 수 없다.
 - positive control은 task 0에서만 수행됐다. evaluation pipeline이 대체로 정상이라는 근거이지만 전체 task 보증은 아니다.
 
-기계 판독용 수치는 [`results/pi05_libero_object_public_summary.json`](../results/pi05_libero_object_public_summary.json)에, 원본 provenance는 `docs/EXPERIMENT_LOG.md`에 있다.
+기계 판독용 π0.5 수치는 [`results/pi05_libero_object_public_summary.json`](../results/pi05_libero_object_public_summary.json)에 보관한다. 원본 instrumentation JSON은 Git에서 제외한다.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Create LIBERO-Object task 0, take one zero-action step, and save RGB."""
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +18,10 @@ def main() -> None:
 
     # hf-libero 0.1.4 otherwise ignores config.yaml for its initial assets probe
     # and falls back to ~/.cache/libero/assets.
-    assets = Path("/workspace/jy/datasets/libero_assets")
+    assets_value = os.environ.get("LIBERO_ASSETS_PATH")
+    if not assets_value:
+        raise EnvironmentError("Set LIBERO_ASSETS_PATH to the local LIBERO assets directory.")
+    assets = Path(assets_value)
     if not assets.is_dir():
         raise FileNotFoundError(f"LIBERO assets not found: {assets}")
     libero_core._assets_path_cache = str(assets)

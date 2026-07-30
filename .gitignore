@@ -5,10 +5,8 @@ __pycache__/
 .cache/
 .ipynb_checkpoints/
 
-# Local experiment artifacts. Keep the requested smoke-test image.
+# Local experiment artifacts. Representative public videos live in assets/.
 outputs/*
-!outputs/smoke_test.png
-!outputs/dataset_sample.png
 wandb/
 checkpoints/
 data/
@@ -19,6 +17,9 @@ datasets/
 *.pth
 optimizer_state.safetensors
 *.mp4
+!assets/
+!assets/videos/
+!assets/videos/*.mp4
 *.log
 *.incomplete
 /cache/

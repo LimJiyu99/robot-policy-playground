@@ -12,10 +12,21 @@ from pathlib import Path
 import pandas as pd
 
 
-CHECKPOINT = Path("outputs/pi05_libero_base_expert_only_6k/checkpoints/006000/pretrained_model")
-ROOT = Path("outputs/pi05_libero_base_expert_only_6k_demo_videos5")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+CHECKPOINT = Path(
+    os.environ.get(
+        "PI05_CHECKPOINT",
+        PROJECT_ROOT / "outputs/pi05_libero_base_expert_only_6k/checkpoints/006000/pretrained_model",
+    )
+)
+ROOT = Path(
+    os.environ.get(
+        "PI05_VIDEO_OUTPUT",
+        PROJECT_ROOT / "outputs/pi05_libero_base_expert_only_6k_demo_videos5",
+    )
+)
 RESULT_PATH = ROOT / "instrumentation.json"
-DATASET_ROOT = Path("/workspace/jy/datasets/lerobot/libero_object_image")
+DATASET_ROOT = Path(os.environ["LEROBOT_DATASET_ROOT"])
 TASKS = (0, 1, 2, 3, 4)
 
 
@@ -46,7 +57,7 @@ def run_task(task: int, seed: int) -> dict:
     }
     command = [
         sys.executable,
-        "scripts/eval_act_smoke_instrumented.py",
+        str(PROJECT_ROOT / "scripts/eval_policy_instrumented.py"),
         f"--policy.path={CHECKPOINT}",
         "--policy.n_action_steps=10",
         "--env.type=libero",
@@ -65,7 +76,7 @@ def run_task(task: int, seed: int) -> dict:
         f"--seed={seed}",
         f"--output_dir={run_dir}",
     ]
-    subprocess.run(command, check=True, env=environment, stdin=subprocess.DEVNULL)
+    subprocess.run(command, cwd=PROJECT_ROOT, check=True, env=environment, stdin=subprocess.DEVNULL)
     metrics = json.loads(metrics_path.read_text())
     episodes = metrics.get("per_episode", [])
     videos = [Path(path) for path in metrics.get("video_paths", [])]
