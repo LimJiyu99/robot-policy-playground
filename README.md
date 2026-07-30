@@ -104,6 +104,7 @@ SmolVLA는 inference 시 `torch.normal` 기반의 확률적 노이즈를 사용�
 | raw `lerobot/pi05_libero_base` | 추가 학습 없음 | 10 tasks × 3 = 30 | 0/30 (0.0%) | checkpoint/input contract을 맞춘 raw 기준선 |
 | `lerobot/pi05_libero_finetuned_v044` positive control | 추가 학습 없음 | task 0 × 3 | 3/3 (100.0%) | task 0에 한정된 pipeline 검증 |
 | `lerobot/pi05_libero_base` → expert-only | 6K | 10 tasks × 3 = 30 | 30/30 (100.0%) | **preliminary**; task당 3회뿐 |
+| raw `pi05_libero_base` vs 6K adaptation | 10 tasks × 10 = 100 / policy | raw 0/100, 6K 100/100 | 동일 seed 100개 paired 완료 |
 
 `pi05_base` 80K의 task별 성공은 `0, 0, 0, 1, 1, 0, 1, 1, 1, 0`(/3)이었다. 6K adaptation의 30/30은 최종 100% 성능이나 일반화/OOD 성능의 증거로 해석하지 않는다.
 
@@ -113,6 +114,7 @@ SmolVLA는 inference 시 `torch.normal` 기반의 확률적 노이즈를 사용�
 
 - `pi05_base` expert-only 80K는 위 30 episodes에서 5회 성공했고, raw `pi05_libero_base`는 0회 성공했다.
 - `pi05_libero_base`에서 시작한 expert-only 6K adaptation은 별도 30 episodes에서 모든 task 3/3을 기록했다.
+- 같은 task별 10 seed(42020–42119) 100-episode 비교에서도 raw base는 0/100, 6K adaptation은 100/100이었다. paired 결과는 6K만 성공 100, raw base만 성공 0이었다.
 
 **Verified**
 
@@ -127,19 +129,20 @@ SmolVLA는 inference 시 `torch.normal` 기반의 확률적 노이즈를 사용�
 
 **Not verified**
 
-- 위 가설의 개별 인과관계, 6K 결과의 100-seed 재현성, OOD/generalization 성능은 아직 검증하지 않았다.
+- 위 가설의 개별 인과관계와 OOD/generalization 성능은 아직 검증하지 않았다.
+- 6K의 동일 task·seed 100-episode 재현성은 확인했지만, 다른 seed 분포는 아직 검증하지 않았다.
 - 6K와 80K는 초기 checkpoint가 달라 학습 step만으로 성능 차이를 설명할 수 없다.
 
-### 미완료 평가
+### 100-seed paired evaluation
 
-raw `pi05_libero_base`와 6K adaptation을 task별 같은 10 seed로 비교하는 100-seed paired evaluation(모델당 100, 총 200 rollouts)은 시간 제약으로 중단됐다. 이 평가는 resume 가능하며, 부분 결과는 최종 결과표나 성능 주장에 사용하지 않았다. 실제 재개 스크립트는 `scripts/eval_pi05_libero_base_vs_expert6k_eval100_resume.py`다.
+raw `pi05_libero_base`와 6K adaptation을 task별 같은 10 seed로 비교한 100-seed paired evaluation(모델당 100, 총 200 rollouts)은 완료됐다. raw base는 0/100, 6K adaptation은 100/100이었으며, paired 결과는 6K만 성공 100, raw base만 성공 0이었다. 원본은 `outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json`이며 재실행 스크립트는 `scripts/eval_pi05_libero_base_vs_expert6k_eval100_resume.py`다.
 
 ### Limitations 및 재현
 
 - 6K와 80K는 initialization이 다르고, 30-episode 결과는 task별 sample 수가 세 개다.
-- 전체 task 100-seed/OOD/generalization 평가는 완료되지 않았다.
+- 동일 task·seed 100-episode 비교는 완료됐지만 OOD/generalization 평가는 수행하지 않았다.
 - 6K workflow 재현: `source scripts/activate_lerobot.sh && python scripts/run_pi05_libero_base_6k_then_eval.py`
-- 100-seed paired evaluation 재개: `source scripts/activate_lerobot.sh && python scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py`
+- 100-seed paired evaluation: `source scripts/activate_lerobot.sh && python scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py`
 
 재현 절차와 JSON provenance는 [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md), 상세 실험 로그는 [docs/EXPERIMENT_LOG.md](docs/EXPERIMENT_LOG.md), 공개용 결과표는 [docs/RESULTS.md](docs/RESULTS.md)에 정리했다.
 

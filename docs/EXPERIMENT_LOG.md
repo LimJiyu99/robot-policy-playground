@@ -17,6 +17,7 @@
 | P2 | `lerobot/pi05_libero_base` | 추가 학습 없음 | 10×3 | 0/30 (0.0%) | 같은 JSON의 `pi05_libero_base` 항목 |
 | P3 | `lerobot/pi05_libero_finetuned_v044` | 추가 학습 없음 | task 0×3 | 3/3 (100.0%) | `outputs/pi05_finetuned_v044_positive_control/eval_info.json` |
 | P4 | `lerobot/pi05_libero_base` | expert-only, batch 2, 6K | 10×3 | 30/30 (100.0%) | `outputs/pi05_libero_base_expert_only_6k/eval/instrumentation.json` |
+| P5 | raw `pi05_libero_base` vs P4 | 같은 task별 10 seed, policy당 100 episodes | 10×10 / policy | raw 0/100, 6K 100/100 | `outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json` |
 
 P1의 task별 성공(/3)은 `0,0,0,1,1,0,1,1,1,0`이다. P4는 모든 task가 3/3이지만 sample 수가 작으므로 preliminary result로만 기록한다.
 
@@ -52,8 +53,8 @@ custom `scripts/eval_act_smoke_instrumented.py`는 공식 `eval_policy`를 호�
 **Not verified**
 
 - 어느 가설이 주원인인지는 통제 실험으로 분리하지 않았다.
-- 6K 30/30의 100-seed 재현성, 다른 환경 seed와 OOD object/task 일반화는 검증하지 않았다.
+- 6K의 동일 task·seed 100-episode 재현성은 확인했지만, 다른 환경 seed와 OOD object/task 일반화는 검증하지 않았다.
 
-## Paused / Incomplete
+## Completed paired evaluation
 
-`outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json`은 raw base와 6K adaptation을 task별 10 seed로 paired 평가하는 총 200-rollout 계획이다. JSON status가 `in_progress`이므로 최종 결과가 아니다. 부분 rollout의 성공률은 본 문서의 결과표와 결론에 사용하지 않았다. `scripts/eval_pi05_libero_base_vs_expert_only_6k_eval100.py`를 같은 명령으로 재실행하면 완료 episode를 건너뛰고 재개한다.
+`outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json`은 raw base와 6K adaptation을 task별 10 seed로 paired 평가한 총 200-rollout 결과다. JSON status는 `completed`이며 raw base는 0/100, 6K adaptation은 100/100을 기록했다. 동일 seed 기준 6K만 성공은 100, raw base만 성공은 0이었다.

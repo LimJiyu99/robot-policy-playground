@@ -51,15 +51,26 @@
       "success_rate": 1.0,
       "scope": "preliminary; task-specific sample count is three",
       "source": "outputs/pi05_libero_base_expert_only_6k/eval/instrumentation.json"
+    },
+    {
+      "id": "pi05_libero_base_raw_vs_expert_only_6k_paired_100",
+      "initial_checkpoints": ["lerobot/pi05_libero_base", "lerobot/pi05_libero_base"],
+      "training": ["no additional adaptation", "expert-only, batch_size=2, 6K optimizer steps"],
+      "evaluation": "same task-specific seeds, 10 tasks x 10 episodes per policy",
+      "raw_successes": 0,
+      "adapted_successes": 100,
+      "episodes_per_policy": 100,
+      "raw_success_rate": 0.0,
+      "adapted_success_rate": 1.0,
+      "paired_comparison": {
+        "raw_only_success": 0,
+        "adapted_only_success": 100,
+        "both_success": 0,
+        "both_failure": 0
+      },
+      "scope": "same 100 seeds only; not OOD or generalization evidence",
+      "source": "outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json"
     }
   ],
-  "incomplete_evaluations": [
-    {
-      "id": "pi05_libero_base_vs_expert_only_6k_eval100",
-      "description": "same-seed paired evaluation, 100 episodes per policy / 200 rollouts planned",
-      "status": "Paused / Incomplete",
-      "source": "outputs/pi05_libero_base_vs_expert_only_6k_eval100/instrumentation.json",
-      "note": "Partial rollout statistics are intentionally omitted from this public summary."
-    }
-  ]
+  "incomplete_evaluations": []
 }

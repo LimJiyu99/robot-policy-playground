@@ -8,11 +8,11 @@
 | raw `pi05_libero_base` | 같은 30 episodes | 0/30 | 0.0% | 완료 |
 | `pi05_libero_finetuned_v044` | task 0 × 3 | 3/3 | 100.0% | positive control |
 | `pi05_libero_base` → expert-only 6K | 10 tasks × 3, 같은 30-episode protocol | 30/30 | 100.0% | 완료, preliminary |
-| raw base vs 6K paired | task별 10, 총 200 rollouts 계획 | — | — | Paused / Incomplete |
+| raw `pi05_libero_base` vs 6K paired | task별 10, policy당 100 (총 200) | raw 0/100, 6K 100/100 | 0.0%, 100.0% | 완료; 6K만 성공 100 |
 
 ## 읽는 방법
 
-- 6K의 30/30은 task당 세 rollout 결과다. 100-seed 최종 결과, 일반화 또는 OOD 성능으로 확대 해석하지 않는다.
+- 6K는 동일 task·seed 100개에서도 100/100을 기록했지만, 일반화 또는 OOD 성능으로 확대 해석하지 않는다.
 - 80K와 6K는 각각 `pi05_base`, `pi05_libero_base`에서 시작했으므로 학습 step만으로 비교할 수 없다.
 - positive control은 task 0에서만 수행됐다. evaluation pipeline이 대체로 정상이라는 근거이지만 전체 task 보증은 아니다.
 
